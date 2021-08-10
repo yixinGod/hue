@@ -5,45 +5,9 @@ draft: false
 weight: 2
 ---
 
-Here is some overview about using the Python commands an shell and some examples below:
-
-* [Hue API: Execute some builtin or shell commands](http://gethue.com/hue-api-execute-some-builtin-commands/).
-* [How to manage the Hue database with the shell](http://gethue.com/how-to-manage-the-hue-database-with-the-shell/).
-
-## Users
-
-### Making a user admin
-
-Via the Hue shell:
+Leverage the built-in Python shell to interact with the server and the API.
 
     build/env/bin/hue shell
-
-Then type something similar to:
-
-    from django.contrib.auth.models import User
-
-    a = User.objects.get(username='hdfs')
-    a.is_staff = True
-    a.is_superuser = True
-    a.set_password('my_secret')
-    a.save()
-
-### Changing user password
-
-In the Hue shell:
-
-    from django.contrib.auth.models import User
-
-    user = User.objects.get(username='example')
-    user.set_password('some password')
-    user.save()
-
-
-### Counting user documents
-
-On the command line:
-
-    ./build/env/bin/hue shell
 
 If using Cloudera Manager, as a *root* user launch the shell.
 
@@ -69,16 +33,83 @@ And finally launch the shell by:
     > ALERT: HUE_CONF_DIR must be set when running hue commands in CM Managed environment
     > ALERT: Please run 'hue <command> --cm-managed'
 
-Then use the Python code to access a certain user information:
+## Storage
 
-    Python 2.7.6 (default, Oct 26 2016, 20:30:19)
-    Type "copyright", "credits" or "license" for more information.
+### S3
 
-    IPython 5.2.0 -- An enhanced Interactive Python.
-    ?         -> Introduction and overview of IPython's features.
-    %quickref -> Quick reference.
-    help      -> Python's own help system.
-    object?   -> Details about 'object', use 'object??' for extra details.
+Interact directly with S3 by first getting a client:
+
+    from desktop.lib.fsmanager import get_client
+
+    s3fs = get_client('default', 's3a', 'romain')
+
+Then grab a key:
+
+    k = s3fs._get_key('s3a://gethue/')
+    k.exists()
+    s3fs.stats('s3a://gethue/user/gethue/footravel.csv').to_json_dict()
+
+Or perform various FS operations:
+
+    b = s3fs._get_bucket('gethue')
+    list(b.list(prefix='user/gethue/'))
+
+    new_k = b.new_key('user/gethue/data/3')
+    new_k.set_contents_from_string('123')
+
+    # new_k.delete()
+    result = new_k.bucket.delete_keys(new_k)
+
+    k = s3fs._get_key('s3a://gethue/user/gethue')
+
+    s3fs.listdir_stats('s3a://gethue/user/gethue')
+    s3fs.mkdir('s3a://gethue/user/gethue/demo')
+
+### ADLS
+
+    from desktop.lib.fsmanager import get_client
+
+    fs = get_client('default', 'abfs', 'romain')
+
+    fs.stats('https://gethue.blob.core.windows.net/data')
+
+## Users
+
+### Create
+
+    from desktop.auth.backend import create_user
+
+    bob = create_user(username='bob', password='secret1', is_superuser=True)
+    alice = create_user(username='alice', password='secret2', is_superuser=False)
+
+### Find or Create
+
+    from desktop.auth.backend import find_or_create_user
+
+    bob = find_or_create_user(username='bob', password='secret1', is_superuser=True)
+    alice = find_or_create_user(username='alice', password='secret2', is_superuser=False)
+
+### Convert to admin
+
+Then type something similar to:
+
+    from django.contrib.auth.models import User
+
+    a = User.objects.get(username='hdfs')
+    a.is_staff = True
+    a.is_superuser = True
+    a.set_password('my_secret')
+    a.save()
+
+### Changing password
+
+    from django.contrib.auth.models import User
+
+    user = User.objects.get(username='example')
+    user.set_password('some password')
+    user.save()
+
+### Counting documents
 
     from django.contrib.auth.models import User
     from desktop.models import Document2

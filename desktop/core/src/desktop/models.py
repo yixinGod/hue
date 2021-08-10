@@ -1194,7 +1194,7 @@ class Document2(models.Model):
       db_index=True,
       verbose_name=_t('If managed under the cover by Hue and never by the user')
   )
-  is_trashed = models.NullBooleanField(default=False, db_index=True, verbose_name=_t('True if trashed'))
+  is_trashed = models.BooleanField(default=False, db_index=True, verbose_name=_t('True if trashed'))
 
   dependencies = models.ManyToManyField('self', symmetrical=False, related_name='dependents', db_index=True)
 
@@ -1982,7 +1982,7 @@ class ClusterConfig(object):
       })
 
     if 'filebrowser' in self.apps and fsmanager.is_enabled_and_has_access('s3a', self.user):
-      home_path = remote_home_storage if remote_home_storage else 'S3A://'.encode('utf-8')
+      home_path = remote_home_storage if remote_home_storage else 's3a://'.encode('utf-8')
       interpreters.append({
         'type': 's3',
         'displayName': _('S3'),
@@ -2002,8 +2002,8 @@ class ClusterConfig(object):
       })
 
     if 'filebrowser' in self.apps and fsmanager.is_enabled_and_has_access('abfs', self.user):
-      from azure.abfs.__init__ import get_home_dir_for_ABFS
-      home_path = remote_home_storage if remote_home_storage else get_home_dir_for_ABFS().encode('utf-8')
+      from azure.abfs.__init__ import get_home_dir_for_abfs
+      home_path = remote_home_storage if remote_home_storage else get_home_dir_for_abfs().encode('utf-8')
       interpreters.append({
         'type': 'abfs',
         'displayName': _('ABFS'),

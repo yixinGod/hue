@@ -1137,7 +1137,7 @@ ${ commonheader(_("Importer"), "indexer", user, request, "60px") | n,unicode }
 <script type="text/html" id="table-field-template">
   <div>
     <label data-bind="visible: level() == 0 || ($parent.type() != 'array' && $parent.type() != 'map')">${ _('Name') }&nbsp;
-      <input type="text" class="input-large" placeholder="${ _('Field name') }" required data-bind="textInput: name">
+      <input type="text" class="input-large" placeholder="${ _('Field name') }" required data-bind="textInput: name" pattern="[a-zA-Z0-9_]+$" title="${ _('Only alphanumeric and underscore characters') }">
     </label>
 
     <label class="margin-left-5">${ _('Type') }&nbsp;
@@ -2327,7 +2327,7 @@ ${ commonheader(_("Importer"), "indexer", user, request, "60px") | n,unicode }
           }
           if (format.value === 'index' && (
               wizard.source.inputFormat() === 'stream' ||
-              ['file', 'query', 'stream', 'manual'].indexOf(wizard.source.inputFormat()) === -1)) {
+              ['file', 'query', 'stream'].indexOf(wizard.source.inputFormat()) === -1)) {
             return false;
           }
           if (format.value === 'table' &&
@@ -3183,7 +3183,7 @@ ${ commonheader(_("Importer"), "indexer", user, request, "60px") | n,unicode }
         function upload() {
           var fd = new FormData();
           var files = $('#inputfile')[0].files[0];
-          fd.append('inputfile', files);
+          fd.append('file', files);
           var file_size = files.size;
           if (file_size > 200000) {
                 $.jHueNotify.warn("${ _('File size exceeds the supported size (200 KB).') }");

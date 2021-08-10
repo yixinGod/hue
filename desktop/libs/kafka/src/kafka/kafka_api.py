@@ -111,15 +111,23 @@ def get_topics(user):
       'database': 'topics'
     }
 
+    from desktop.api_public import _get_interpreter_from_dialect   # due to a circular import
+    interpreter = _get_interpreter_from_dialect('ksql', user)
+    api = _get_notebook_api(user, connector_id=interpreter['type'])
+
     return [
       topic['name']
-      for topic in _get_notebook_api(user, connector_id=56).autocomplete(**data)['tables_meta']
+      for topic in api.autocomplete(**data)['tables_meta']
       if not topic['name'].startswith('__')
     ]
 
 
 def get_topic_data(user, name):
-  data = _get_notebook_api(user, connector_id=56).get_sample_data(snippet={})
+  from desktop.api_public import _get_interpreter_from_dialect   # due to a circular import
+  interpreter = _get_interpreter_from_dialect('ksql', user)
+  api = _get_notebook_api(user, connector_id=interpreter['type'])
+
+  data = api.get_sample_data(snippet={})
   print(data)
   return data
 

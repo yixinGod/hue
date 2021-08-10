@@ -44,6 +44,7 @@ from desktop.lib.exceptions_renderable import PopupException
 from desktop.lib.i18n import smart_unicode
 from desktop.lib.python_util import check_encoding
 from desktop.models import Document2
+from filebrowser.forms import UploadLocalFileForm
 from kafka.kafka_api import get_topics, get_topic_data
 from notebook.connectors.base import get_api, Notebook
 from notebook.decorators import api_error_handler
@@ -455,7 +456,7 @@ def importer_submit(request):
       stream = request.fs.open(path)
       file_encoding = check_encoding(stream.read(10000))
 
-  if destination['ouputFormat'] in ('database', 'table'):
+  if destination['ouputFormat'] in ('database', 'table') and request.fs is not None:
     destination['nonDefaultLocation'] = request.fs.netnormpath(destination['nonDefaultLocation']) \
         if destination['nonDefaultLocation'] else destination['nonDefaultLocation']
 
@@ -738,11 +739,26 @@ def save_pipeline(request):
   return JsonResponse(response)
 
 
+def upload_local_file_drag_and_drop(request):
+
+  response = {'status': -1, 'data': ''}
+  form = UploadLocalFileForm(request.POST, request.FILES)
+  if form.is_valid():
+    resp = upload_local_file(request)
+    json_data = json.loads(resp.content)
+    response['status'] = 0
+    response.update({
+      'path': json_data['local_file_url'],
+    })
+
+  return JsonResponse(response)
+
+
 def upload_local_file(request):
 
-  upload_file = request.FILES['inputfile']
+  upload_file = request.FILES['file']
   username = request.user.username
-  filename = "%s_%s" % (username, uuid.uuid4())
+  filename = "%s_%s:%s;" % (username, uuid.uuid4(), upload_file.name)
   temp_file = tempfile.NamedTemporaryFile(prefix=filename, suffix='.csv', delete=False)
   temp_file.write(upload_file.read())
   local_file_url = temp_file.name

@@ -216,16 +216,10 @@ def view(request, path):
 
   path = _normalize_path(path)
 
-  if request.path.startswith('/api/') and request.fs is None:
-    request.fs = fsmanager.get_filesystem(request.fs_ref)
-
-    if request.user.is_authenticated and request.fs is not None:
-      request.fs.setuser(request.user.username)
-
   # default_abfs_home is set in jquery.filechooser.js
   if 'default_abfs_home' in request.GET:
-    from azure.abfs.__init__ import get_home_dir_for_ABFS
-    home_dir_path = get_home_dir_for_ABFS()
+    from azure.abfs.__init__ import get_home_dir_for_abfs
+    home_dir_path = get_home_dir_for_abfs()
     if request.fs.isdir(home_dir_path):
       return format_preserving_redirect(
           request,
@@ -573,9 +567,10 @@ def listdir_paged(request, path):
   if page:
     page.object_list = [_massage_stats(request, stat_absolute_path(path, s)) for s in shown_stats]
 
-  is_trash_enabled = request.fs._get_scheme(path) == 'hdfs' and int(get_trash_interval()) > 0
+  is_hdfs = request.fs._get_scheme(path) == 'hdfs'
+  is_trash_enabled = is_hdfs and int(get_trash_interval()) > 0
+  is_fs_superuser = is_hdfs and _is_hdfs_superuser(request)
 
-  is_fs_superuser = _is_hdfs_superuser(request)
   data = {
       'path': path,
       'breadcrumbs': breadcrumbs,
@@ -656,7 +651,7 @@ def stat(request, path):
 
 def content_summary(request, path):
   path = _normalize_path(path)
-  
+
   if not request.fs.exists(path):
     raise Http404(_("File not found: %(path)s") % {'path': escape(path)})
   response = {'status': -1, 'message': '', 'summary': None}

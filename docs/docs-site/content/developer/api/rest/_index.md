@@ -5,7 +5,7 @@ draft: false
 weight: 1
 ---
 
-Interact with the API server (e.g. submit a SQL query, list some S3 files in a bucket, search for a table...) with via a REST API.
+Interact with the API server (e.g. submit a SQL query, list some S3 files in a bucket, search for a table...) via a REST API.
 
 Users authenticate with the same credentials as they would do in the Browser login page.
 
@@ -38,7 +38,7 @@ Authenticating and getting a [JWT token](https://jwt.io/):
 
 Re-using the token when making actual calls:
 
-    url -X POST https://demo.gethue.com/api/v1/create_notebook -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNjIxNjM5NjMxLCJqdGkiOiI0NTY3NTA4MzM5YjY0MjFmYTMzZDJjMzViZWUyMDAyMCIsInVzZXJfaWQiOjF9.qrMNrr69eo38dOsV2aYp8k6WqBeyJZkbSuavxA_o_kM"
+    curl -X POST https://demo.gethue.com/api/query/create_notebook -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNjIxNjM5NjMxLCJqdGkiOiI0NTY3NTA4MzM5YjY0MjFmYTMzZDJjMzViZWUyMDAyMCIsInVzZXJfaWQiOjF9.qrMNrr69eo38dOsV2aYp8k6WqBeyJZkbSuavxA_o_kM"
 
     {"status": 0, "notebook": {"name": "My Notebook", "uuid": "1e23314f-b01e-4c18-872f-dc143475f063", "description": "", "type": "notebook", "isSaved": false, "isManaged": false, "skipHistorify": false, "sessions": [], "snippets": [], "directoryUuid": null}}
 
@@ -72,7 +72,7 @@ And then:
         'Authorization': 'Bearer %s' % token,
         "Content-Type": "application/x-www-form-urlencoded"
       },
-      data={'snippet': json.dumps({"type":"mysql"})}
+      data={'snippet': json.dumps({"type":"1"})}
     )
     print(response.status_code)
     print(response.text)
@@ -111,13 +111,13 @@ The API authenticates via the [authentication backends](/administrator/configura
 
 Then a JWT token is returned and needs to be passed as a bearer in the headers for all the API calls.
 
-**Wrong credentials**: there is currently no error on bad authentication but instead a 302 redirect to the login page, e.g.:
+**Wrong credentials**: on bad authentication, it will return a `401 unauthorized` response, e.g.:
 
-    curl -X POST https://demo.gethue.com/notebook/execute/v1/create_notebook -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNjIxNjM5NjMxLCJqdGkiOiI0NTY3NTA4MzM5YjY0MjFmYTMzZDJjMzViZWUyMDAyMCIsInVzZXJfaWQiOjF9.qrMNrr69eo38dOsV2aYp8k6WqBeyJZkbSuavxA_o_kM"
+    curl -X POST https://demo.gethue.com/api/editor/create_notebook -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNjIxNjM5NjMxLCJqdGkiOiI0NTY3NTA4MzM5YjY0MjFmYTMzZDJjMzViZWUyMDAyMCIsInVzZXJfaWQiOjF9.qrMNrr69eo38dOsV2aYp8k6WqBeyJZkbSuavxA_o_kM"
 
-    [21/May/2021 16:26:46 -0700] middleware   INFO     Redirecting to login page: /notebook/execute/v1/create_notebook
-    [21/May/2021 16:26:46 -0700] access       INFO     127.0.0.1 -anon- - "POST /notebook/execute/v1/create_notebook HTTP/1.1" - (mem: 172mb)-- login redirection
-    [21/May/2021 16:26:46 -0700] access       INFO     127.0.0.1 -anon- - "POST /notebook/execute/v1/create_notebook HTTP/1.1" returned in 4ms 302 0
+    {"detail":"Given token not valid for any token type","code":"token_not_valid","messages":[{"token_class":"AccessToken","token_type":"access","message":"Token is invalid or expired"}]}
+
+    [09/Jul/2021 23:58:40 -0700] access       INFO     demo.gethue.com -anon- - "POST /api/editor/create_notebook HTTP/1.1" returned in 2ms 401 183 (mem: 124mb)
 
 ### Authenticate
 
@@ -127,9 +127,9 @@ Provide login credentials and get a [JWT token](https://jwt.io/):
 
     {"refresh":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTYyMTcyNDYzMSwianRpIjoiOGM0NDRjYzRhN2VhNGMxZDliMGZhNmU1YzUyMjM1MjkiLCJ1c2VyX2lkIjoxfQ.t6t7_eYrNhpGN3-Jz5MDLXM8JtGP7V9Y9lacOTInqqQ","access":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNjIxNjM4NTMxLCJqdGkiOiJhZjgwN2E0ZjBmZDI0ZWMxYWQ2NTUzZjEyMjIyYzU4YyIsInVzZXJfaWQiOjF9.dQ1P3hbzSytp9-o8bWlcOcwrdwRVy95M2Eolph92QMA"}
 
-And keep the `access` tokent as the value of the bearer.
+And keep the `access` token as the value of the bearer.
 
-### Check token
+### Validate token
 
 The validity (i.e. did it expire?) of an `access` token can be verified:
 
@@ -174,7 +174,7 @@ And now ask for the resultset of the statement:
 
 And if we wanted to get the execution log for this statement:
 
-    curl -X POST https://demo.gethue.com/notebook/api/get_logs --data 'operationId=63ce87ba-ca0f-4653-8aeb-e9f5c1781b78'
+    curl -X POST https://demo.gethue.com/api/editor/get_logs --data 'operationId=63ce87ba-ca0f-4653-8aeb-e9f5c1781b78'
 
     {"status": 0, "progress": 5, "jobs": [], "logs": "", "isFullLogs": false}
 
@@ -226,53 +226,51 @@ Same but in Python:
 
 ### Listing Databases
 
-    $.post("/notebook/api/autocomplete/", {
-      "snippet": ko.mapping.toJSON({
-          type: "hive"
-      })
-    }, function(data) {
-      console.log(ko.mapping.toJSON(data));
-    });
+    curl -X POST https://demo.gethue.com/api/editor/autocomplete/
 
-### Listing Tables
+### Database details
 
-    $.post("/notebook/api/autocomplete/<DB>", {
-      "snippet": ko.mapping.toJSON({
-          type: "hive"
-      })
-    }, function(data) {
-      console.log(ko.mapping.toJSON(data));
-    });
+    curl -X POST https://demo.gethue.com/api/editor/autocomplete/<DB>/
 
-### Table details and Columns
+Describe database API:
 
-    $.post("/notebook/api/autocomplete/<DB>/<TABLE>", {
-      "snippet": ko.mapping.toJSON({
-          type: "hive"
-      })
-    }, function(data) {
-      console.log(ko.mapping.toJSON(data));
-    });
+    curl -X POST https://demo.gethue.com/api/editor/describe/<DB>/ -d 'source_type=mysql'
+
+- **source_type:** select the configured databases (e.g. `hive`) or connector ID (e.g. `1`)
+
+### Table details
+
+    curl -X POST https://demo.gethue.com/api/editor/autocomplete/<DB>/<TABLE>/
+
+Describe table API:
+
+    curl -X POST https://demo.gethue.com/api/editor/describe/<DB>/<TABLE>/ -d 'source_type=1'
+
+- **source_type:** select the configured databases (e.g. `hive`) or connector ID (e.g. `1`)
+
+Analyze API:
+
+    curl -X POST https://demo.gethue.com/api/<DIALECT>/analyze/<DB>/<TABLE>/
+
+- Currently supported **dialects:** impala, beeswax (hive)
+
+Sample table data API:
+
+    curl -X POST https://demo.gethue.com/api/editor/sample/<DB>/<TABLE>/
 
 ### Column details
 
-    $.post("/notebook/api/autocomplete/<DB>/<TABLE>/<COL1>", {
-      "snippet": ko.mapping.toJSON({
-          type: "hive"
-      })
-    }, function(data) {
-      console.log(ko.mapping.toJSON(data));
-    });
+    curl -X POST https://demo.gethue.com/api/editor/autocomplete/<DB>/<TABLE>/<COL1>/
 
-For nested columns:
+Analyze API:
 
-    $.post("/notebook/api/autocomplete/<DB>/<TABLE>/<COL1>/<COL2>", {
-      "snippet": ko.mapping.toJSON({
-          type: "hive"
-      })
-    }, function(data) {
-      console.log(ko.mapping.toJSON(data));
-    });
+    curl -X POST https://demo.gethue.com/api/<DIALECT>/analyze/<DB>/<TABLE>/<COL1>/
+
+- Currently supported **dialects:** impala, beeswax (hive)
+
+Sample column data API:
+
+    curl -X POST https://demo.gethue.com/api/editor/sample/<DB>/<TABLE>/<COL1>/
 
 ### Listing Functions
 
@@ -309,6 +307,20 @@ For a specific function/UDF details (e.g. trunc):
       console.log(ko.mapping.toJSON(data));
     });
 
+### Query history
+
+We can choose a dialect for `doc_type` e.g. impala, mysql, hive, phoenix, etc.
+
+    curl -X GET https://demo.gethue.com/api/editor/get_history?doc_type=hive
+
+    {"status": 0, "count": 3, "history": [{"name": "", "id": 2008, "uuid": "5b48c678-1224-4863-b523-3baab82402a7", "type": "query-hive", "data": {"statement": "CREATE TABLE w12( Name STRING, Money BIGINT )", "lastExecuted": 1621502970360, "status": "failed", "parentSavedQueryUuid": ""}, "absoluteUrl": "/editor?editor=2008"}, {"name": "", "id": 2006, "uuid": "1cd32ae0-9b61-46ae-8fd4-72c4255209c3", "type": "query-hive", "data": {"statement": "CREATE TABLE q13( Name STRING, Money BIGINT )", "lastExecuted": 1621498889058, "status": "expired", "parentSavedQueryUuid": ""}, "absoluteUrl": "/editor?editor=2006"}, {"name": "", "id": 2003, "uuid": "e5ec1fa4-1a36-4e42-a814-a685b0142223", "type": "query-hive", "data": {"statement": "CREATE TABLE q11( Name STRING, Money BIGINT );\nINSERT INTO q11 VALUES ('abc', 100);", "lastExecuted": 1621498771619, "status": "expired", "parentSavedQueryUuid": ""}, "absoluteUrl": "/editor?editor=2003"}], "message": "History fetched"}
+
+### Get Configuration
+
+    curl -X POST https://demo.gethue.com/api/get_config/
+    
+    {"app_config": {"editor": {"name": "editor", "displayName": "Editor", "buttonName": "Query", "interpreters": [{"name": "MySQL", "type": "mysql", "id": "mysql", "displayName": "MySQL", "buttonName": "Query", "tooltip": "Mysql Query", "optimizer": "off", "page": "/editor/?type=mysql", "is_sql": true, "is_batchable": true, "dialect": "mysql", "dialect_properties": {}}, {"name": "notebook", "type": "notebook", "displayName": "Notebook", "buttonName": "Notebook", "tooltip": "Notebook", "page": "/notebook", "is_sql": false, "dialect": "notebook"}], "default_limit": 5000, "interpreter_names": ["mysql", "notebook"], "page": "/editor/?type=mysql", "default_sql_interpreter": "mysql"}, "catalogs": [{"name": "MySQL", "type": "mysql", "id": "mysql", "displayName": "MySQL", "buttonName": "Query", "tooltip": "Mysql Query", "page": "/editor/?type=mysql", "is_sql": true, "is_catalog": true}], "browser": {"name": "browser", "displayName": "Browsers", "buttonName": "Browse", "interpreters": [{"type": "hdfs", "displayName": "Files", "buttonName": "Browse", "tooltip": "Files", "page": "/filebrowser/view=%2Fuser%2Fdemo"}, {"type": "tables", "displayName": "Tables", "buttonName": "Browse", "tooltip": "Tables", "page": "/metastore/tables"}, {"type": "yarn", "displayName": "Jobs", "buttonName": "Jobs", "tooltip": "Jobs", "page": "/jobbrowser/"}, {"type": "importer", "displayName": "Importer", "buttonName": "Import", "tooltip": "Importer", "page": "/indexer/importer"}], "interpreter_names": ["hdfs", "tables", "yarn", "importer"]}, "home": {"name": "home", "displayName": "Home", "buttonName": "Documents", "interpreters": [], "page": "/home"}}, "main_button_action": {"name": "MySQL", "type": "mysql", "id": "mysql", "displayName": "MySQL", "buttonName": "Query", "tooltip": "Mysql Query", "optimizer": "off", "page": "/editor/?type=mysql", "is_sql": true, "is_batchable": true, "dialect": "mysql", "dialect_properties": {}}, "button_actions": [{"name": "editor", "displayName": "Editor", "buttonName": "Query", "interpreters": [{"name": "MySQL", "type": "mysql", "id": "mysql", "displayName": "MySQL", "buttonName": "Query", "tooltip": "Mysql Query", "optimizer": "off", "page": "/editor/?type=mysql", "is_sql": true, "is_batchable": true, "dialect": "mysql", "dialect_properties": {}}, {"name": "notebook", "type": "notebook", "displayName": "Notebook", "buttonName": "Notebook", "tooltip": "Notebook", "page": "/notebook", "is_sql": false, "dialect": "notebook"}], "default_limit": 5000, "interpreter_names": ["mysql", "notebook"], "page": "/editor/?type=mysql", "default_sql_interpreter": "mysql"}], "default_sql_interpreter": "mysql", "cluster_type": "direct", "has_computes": false, "hue_config": {"enable_sharing": true, "is_admin": true}, "clusters": [{"id": "default", "name": "default", "type": "direct", "credentials": {}}], "documents": {"types": ["directory", "gist", "query-mysql"]}, "status": 0}
+
 ## File Browsing
 
 ### List
@@ -317,7 +329,7 @@ Hue's [File Browser](https://docs.gethue.com/user/browsing/#data) offer uploads,
 
 Here is how to list the content of a path, here a S3 bucket `s3a://gethue-demo`:
 
-    curl -X GET "https://demo.gethue.com/api/storage/view=s3a://gethue-demo"
+    curl -X GET https://demo.gethue.com/api/storage/view=s3a://gethue-demo
 
     {
       ...........
@@ -414,28 +426,52 @@ e.g. ?offset=0&length=204800&compression=none&mode=text
 
 ### Download
 
-    GET http://127.0.0.1:9000/filebrowser/download=s3a://demo-hue/web_log_data/index_data.csv
+Specify a path of the file to download:
+
+    curl -X GET https://demo.gethue.com/api/storage/download=/user/hue/weblogs.csv
+
+    curl -X GET https://demo.gethue.com/api/storage/download=s3a://demo-hue/web_log_data/index_data.csv
+
+- download: file path from any configured remote file system
 
 ### Upload
 
-    POST http://127.0.0.1:9000/filebrowser/upload/file?dest=s3a://demo-hue
+Upload a local file to a remote destination folder:
 
-    hdfs_file: (binary)
-    dest: s3a://demo-hue
+    curl -X POST https://demo.gethue.com/api/storage/upload/file?dest=s3a://demo-hue/web_log_data/ --form hdfs_file=@README.md
+
+- dest: folder path will be created if it does not exist yet
+- hdfs_file: relative or absolute path to a file. It should be read more like `local_file`, it is not related to HDFS
 
 ## Data Importer
 
 ### File import
 
-First guessing the format of the file `s3a://demo-hue/web_log_data/index_data.csv`:
+We have 2 options here.
 
-    curl -X POST https://demo.gethue.com/indexer/api/indexer/guess_format  --data 'fileFormat={"inputFormat":"file","path":"s3a://demo-hue/web_log_data/index_data.csv"}'
+- **Remote file**
+  + In this option we are choosing a file from HDFS/S3 file system.
+  
+
+- **Small Local file**
+  + In this option we can choose a file from local file system.
+
+We need to pass two main parameters `inputFormat` and `path` to the `guess_format` api.
+  - For example:
+    + In remote file, parameters are `inputFormat=file` and `path=s3a://demo-gethue/data/web_logs/index_data.csv`
+    + In small local file, parameter are `inputFormat=localfile`  and `path=/Users/hue/Downloads/test_demo/flights11.csv`
+
+**Note:** Here value of `inputFormat` is constant according to the option we choose and the value of `path` should be from valid file system as explained above.
+
+Now guessing the format of the file:
+
+    curl -X POST https://demo.gethue.com/api/indexer/guess_format  --data 'fileFormat={"inputFormat":"file","path":"s3a://demo-gethue/data/web_logs/index_data.csv"}'
 
     {"status": 0, "fieldSeparator": ",", "hasHeader": true, "quoteChar": "\"", "recordSeparator": "\\n", "type": "csv"}
 
 Then getting some data sample as well as the column types (column names will be picked from the header line if present):
 
-    curl -X POST https://demo.gethue.com/indexer/api/indexer/guess_field_types  --data 'fileFormat={"inputFormat":"file","path":"s3a://demo-hue/web_log_data/index_data.csv","format":{"type":"csv","fieldSeparator":",","recordSeparator":"\\n","quoteChar":"\"","hasHeader":true,"status":0}}'
+    curl -X POST https://demo.gethue.com/api/indexer/guess_field_types  --data 'fileFormat={"inputFormat":"file","path":"s3a://demo-gethue/data/web_logs/index_data.csv","format":{"type":"csv","fieldSeparator":",","recordSeparator":"\\n","quoteChar":"\"","hasHeader":true,"status":0}}'
 
     {
       "sample": [["200", "HTTP/1.1", "GET /metastore/table/default/sample_07 HTTP/1.1", "metastore", "", "00", "SG", "8836e6ce-9a21-449f-a372-9e57641389b3", "Singapore", "table", "1.2931000000000097", "GET", "128.199.234.236", "Other", "1041", "-", "Singapore", "", "/metastore/table/default/sample_07", "", "103.85579999999999", "Other", "demo.gethue.com:80 128.199.234.236 - - [04/May/2014:06:35:49 +0000] \"GET /metastore/table/default/sample_07 HTTP/1.1\" 200 1041 \"-\" \"Mozilla/5.0 (compatible; phpservermon/3.0.1; +http://www.phpservermonitor.org)\"\n", "Mozilla/5.0 (compatible; phpservermon/3.0.1; +http://www.phpservermonitor.org)", "2014-05-04T06:35:49Z", "Other", "SGP"],
@@ -444,11 +480,13 @@ Then getting some data sample as well as the column types (column names will be 
       .....
     }
 
-Then we submit via `https://demo.gethue.com/indexer/api/importer/submit` and provide the `source` and `destination` parameters. We get back an `operation id` (i.e. some SQL Editor query history id).
+Then we submit via `https://demo.gethue.com/api/indexer/importer/submit` and provide the `source` and `destination` parameters. We get back an `operation id` (i.e. some SQL Editor query history id).
 
 If the `show_command` parameter is given, the API call will instead return the generated SQL queries that will import the data.
 
-    {"status": 0, "history_id": 17820, "handle": {"statement_id": 0, "session_type": "hive", "has_more_statements": true, "guid": "uu6K3SSWSY6mx/fbh0nm2w==\n", "previous_statement_hash": "4bee3a62b3c7142c60475021469483bff81ba09bd07b8e527179e617", "log_context": null, "statements_count": 4, "end": {"column": 53, "row": 0}, "session_id": 55, "start": {"column": 0, "row": 0}, "secret": "8mKu1bhdRtWXu82DXjDZdg==\n", "has_result_set": false, "session_guid": "fd4c667f3a5e4507:0335af7716db3d9e", "statement": "DROP TABLE IF EXISTS `default`.`hue__tmp_index_data`", "operation_type": 0, "modified_row_count": null}, "history_uuid": "bf5804f5-6f12-47a8-8ba6-0ed7032ebe93"}
+    curl -X  POST https://demo.gethue.com/api/indexer/importer/submit --data 'source={"sourceType":"hive","inputFormat":"localfile","path":"/Users/hue/Downloads/test_demo/flights_13.csv","format":{"hasHeader":true}}&destination={"sourceType":"hive","name":"default.test1","outputFormat":"table","columns":[{"name":"date","type":"timestamp"},{"name":"hour","type":"bigint"},{"name":"minute","type":"bigint"},{"name":"dep","type":"bigint"},{"name":"arr","type":"bigint"},{"name":"dep_delay","type":"bigint"},{"name":"arr_delay","type":"bigint"},{"name":"carrier","type":"string"},{"name":"flight","type":"bigint"},{"name":"dest","type":"string"},{"name":"plane","type":"string"},{"name":"cancelled","type":"boolean"},{"name":"time","type":"bigint"},{"name":"dist","type":"bigint"}], "nonDefaultLocation":""}'
+
+    {"status": 0, "handle": {"secret": "C5vnlrpVTxuOpHZfTrLfmg==", "guid": "8ytLYHTsTlq8vYSiYXoyKQ==", "operation_type": 0, "has_result_set": false, "modified_row_count": null, "log_context": null, "session_guid": "d04b246456e87e61:b86340ae83f6a586", "session_id": 748, "session_type": "hive", "statement_id": 0, "has_more_statements": false, "statements_count": 1, "previous_statement_hash": "94ea45e37bbbbc7bb7e20b5d0efe0db8c9794dd526b5a3386bae3596", "start": {"row": 0, "column": 0}, "end": {"row": 0, "column": 305}, "statement": "CREATE TABLE IF NOT EXISTS default.yuyu11 (\n  `date` timestamp,\n  `hour` bigint,\n  `minute` bigint,\n  `dep` bigint,\n  `arr` bigint,\n  `dep_delay` bigint,\n  `arr_delay` bigint,\n  `carrier` string,\n  `flight` bigint,\n  `dest` string,\n  `plane` string,\n  `cancelled` boolean,\n  `time` bigint,\n  `dist` bigint)"}, "history_id": 2492, "history_uuid": "c60dc4dd-4d39-42fd-85f5-af155d99b626"}
 
 ## Connectors
 
@@ -456,7 +494,167 @@ If the `show_command` parameter is given, the API call will instead return the g
 
 Get the list of configured [connectors](/administrator/configuration/connectors/):
 
-    curl -L -X POST demo.gethue.com/desktop/connectors/api/instances
+    curl -X GET https://demo.gethue.com/api/connector/instances
+
+    {"connectors": [{"category": "editor", "category_name": "Editor", "description": "", "values": []}, {"category": "browsers", "category_name": "Browsers", "description": "", "values": []}, {"category": "catalogs", "category_name": "Catalogs", "description": "", "values": []}, {"category": "optimizers", "category_name": "Optimizers", "description": "", "values": []}, {"category": "schedulers", "category_name": "Schedulers", "description": "", "values": []}, {"category": "plugins", "category_name": "Plugins", "description": "", "values": []}]}
+
+### Types
+
+    curl -X GET https://demo.gethue.com/api/connector/types
+
+    { "connectors": [ { "category": "editor", "category_name": "Editor", "description": "", "values": [ { "dialect": "hive", "nice_name": "Hive", "description": "Recommended", "category": "editor", "interface": "hiveserver2", "settings": [ { "name": "server_host", "value": "localhost" }, { "name": "server_port", "value": 10000 }, { "name": "is_llap", "value": false }, { "name": "use_sasl", "value": true } ], "properties": { "is_sql": true, "sql_identifier_quote": "`", "sql_identifier_comment_single": "--", "has_catalog": false, "has_database": true, "has_table": true, "has_live_queries": false, "has_optimizer_risks": true, "has_optimizer_values": true, "has_auto_limit": false, "has_reference_language": true, "has_reference_functions": true, "has_use_statement": true } },
+    ...........
+    { "category": "browsers", "category_name": "Browsers", "description": "", "values": [ { "nice_name": "HDFS", "dialect": "hdfs", "interface": "rest", "settings": [ { "name": "server_url", "value": "http://localhost:50070/webhdfs/v1" }, { "name": "default_fs", "value": "fs_defaultfs=hdfs://localhost:8020" } ], "category": "browsers", "description": "", "properties": {} },
+    ...........
+    { "nice_name": "S3", "dialect": "s3", "settings": [], "category": "browsers", "description": "", "properties": {} }, { "nice_name": "ADLS", "dialect": "adls-v1", "settings": [], "category": "browsers", "description": "", "properties": {} } ] }, { "category": "catalogs", "category_name": "Catalogs", "description": "", "values": [ { "nice_name": "Hive Metastore", "dialect": "hms", "interface": "hiveserver2", "settings": [ { "name": "server_host", "value": "" }, { "name": "server_port", "value": "" } ], "category": "catalogs", "description": "", "properties": {} }, { "nice_name": "Atlas", "dialect": "atlas", "interface": "rest", "settings": [], "category": "catalogs", "description": "", "properties": {} },
+    ...........
+    ] }, { "category": "optimizers", "category_name": "Optimizers", "description": "", "values": [ { "nice_name": "Optimizer", "dialect": "optimizer", "settings": [], "category": "optimizers", "description": "", "properties": {} } ] }, { "category": "schedulers", "category_name": "Schedulers", "description": "", "values": [ { "nice_name": "Oozie", "dialect": "oozie", "settings": [], "category": "schedulers", "description": "", "properties": {} },
+    ...........
+    ] }, { "category": "plugins", "category_name": "Plugins", "description": "", "values": [] } ], "categories": [ { "name": "Editor", "type": "editor", "description": "" }, { "name": "Browsers", "type": "browsers", "description": "" }, { "name": "Catalogs", "type": "catalogs", "description": "" }, { "name": "Optimizers", "type": "optimizers", "description": "" }, { "name": "Schedulers", "type": "schedulers", "description": "" }, { "name": "Plugins", "type": "plugins", "description": "" } ] }
+
+### Create
+
+How to connect to a HiveServer (dialect=hive) via the SqlAlchemy interface (interface=sqlalchemy):
+
+    curl -X POST https://demo.gethue.com/api/connector/instance/new/hive/sqlalchemy -d '
+    {
+    "connector": {
+        "id": "1",
+        "dialect": "hive",
+        "nice_name": "Hive",
+        "description": "Via SqlAlchemy interface",
+        "category": "editor",
+        "interface": "sqlalchemy",
+        "settings": [
+          {
+            "name": "url",
+            "value": "hive://localhost:10000"
+          },
+          {
+            "name": "has_ssh",
+            "value": false
+          },
+          {
+            "name": "ssh_server_host",
+            "value": "127.0.0.1"
+          }
+        ],
+        "properties": {
+          "is_sql": true,
+          "sql_identifier_quote": "`",
+          "sql_identifier_comment_single": "--",
+          "has_catalog": false,
+          "has_database": true,
+          "has_table": true,
+          "has_live_queries": false,
+          "has_optimizer_risks": true,
+          "has_optimizer_values": true,
+          "has_auto_limit": false,
+          "has_reference_language": true,
+          "has_reference_functions": true,
+          "has_use_statement": true
+        }
+      }
+    }'
+
+### Get
+
+    curl -X GET https://demo.gethue.com/api/connector/instance/get/<ID>
+
+### Update
+
+    curl -X POST https://demo.gethue.com/api/connector/instance/update -d '
+    {
+    "connector": {
+        "id": "1",
+        "dialect": "hive",
+        "nice_name": "Hive",
+        "description": "Via SqlAlchemy interface",
+        "category": "editor",
+        "interface": "sqlalchemy",
+        "settings": [
+          {
+            "name": "url",
+            "value": "hive://localhost:10000"
+          },
+          {
+            "name": "has_ssh",
+            "value": false
+          },
+          {
+            "name": "ssh_server_host",
+            "value": "127.0.0.1"
+          }
+        ],
+        "properties": {
+          "is_sql": true,
+          "sql_identifier_quote": "`",
+          "sql_identifier_comment_single": "--",
+          "has_catalog": false,
+          "has_database": true,
+          "has_table": true,
+          "has_live_queries": false,
+          "has_optimizer_risks": true,
+          "has_optimizer_values": true,
+          "has_auto_limit": false,
+          "has_reference_language": true,
+          "has_reference_functions": true,
+          "has_use_statement": true
+        }
+      }
+    }'
+
+### Delete
+
+    curl -X POST 'https://demo.gethue.com/api/connector/instance/delete' -d '{"connector": {"id": "1", "name": "hive"}}'
+
+### Test
+
+    curl -X POST 'https://demo.gethue.com/api/connector/instance/test/' -d '
+    {
+        "connector": {
+        "id": "1",
+        "dialect": "hive",
+        "nice_name": "Hive",
+        "description": "Via SqlAlchemy interface",
+        "category": "editor",
+        "interface": "sqlalchemy",
+        "settings": [
+          {
+            "name": "url",
+            "value": "hive://localhost:10000"
+          },
+          {
+            "name": "has_ssh",
+            "value": false
+          },
+          {
+            "name": "ssh_server_host",
+            "value": "127.0.0.1"
+          }
+        ],
+        "properties": {
+          "is_sql": true,
+          "sql_identifier_quote": "`",
+          "sql_identifier_comment_single": "--",
+          "has_catalog": false,
+          "has_database": true,
+          "has_table": true,
+          "has_live_queries": false,
+          "has_optimizer_risks": true,
+          "has_optimizer_values": true,
+          "has_auto_limit": false,
+          "has_reference_language": true,
+          "has_reference_functions": true,
+          "has_use_statement": true
+        }
+      }
+    }'
+
+
+### Examples
+
+    curl -X POST https://demo.gethue.com/api/connector/examples/install/
 
 ## Data Catalog
 

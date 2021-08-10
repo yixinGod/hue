@@ -1700,6 +1700,17 @@ else:
         deleteSelected();
       };
 
+      self.copyPath = function () {
+        const path = $('<input>').val(self.selectedFile().path).appendTo('body').select()
+        document.execCommand('copy');
+        path.remove();
+        $.jHueNotify.info('${_('Path copied successfully to the clipboard')}');
+      }
+
+      self.openInImporter = function () {
+        huePubSub.publish('open.in.importer', self.selectedFile().path);
+      }
+
       self.trashSelected = function () {
         self.skipTrash(false);
         deleteSelected();

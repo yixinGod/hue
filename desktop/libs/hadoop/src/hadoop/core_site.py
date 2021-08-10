@@ -47,6 +47,11 @@ _CNF_S3A_RAZ_API_URL = 'fs.s3a.ext.raz.rest.host.url'
 _CNF_S3A_RAZ_CLUSTER_NAME = 'fs.s3a.ext.raz.s3.access.cluster.name'
 _CNF_S3A_RAZ_BUCKET_ENDPOINT = 'fs.s3a.bucket.(?P<bucket>[^.]+).endpoint'
 
+_CNF_ADLS_RAZ_API_URL = 'fs.azure.ext.raz.rest.host.url'
+_CNF_ADLS_RAZ_CLUSTER_NAME = 'fs.azure.ext.raz.adls.access.cluster.name'
+
+_CNF_DEFAULT_FS = 'fs.defaultFS'
+
 _CNF_ADLS_CLIENT_ID = 'dfs.adls.oauth2.client.id'
 _CNF_ADLS_AUTHENTICATION_CODE = 'dfs.adls.oauth2.credential'
 _CNF_ADLS_REFRESH_URL = 'dfs.adls.oauth2.refresh.url'
@@ -120,18 +125,20 @@ def get_s3a_session_token():
 def get_raz_api_url():
   """
   Get Raz API.
-
-  S3 only. Add check for Azure when supported.
   """
-  return get_conf().get(_CNF_S3A_RAZ_API_URL)
+  s3a_raz_url = get_conf().get(_CNF_S3A_RAZ_API_URL)
+  adls_raz_url = get_conf().get(_CNF_ADLS_RAZ_API_URL)
+
+  if s3a_raz_url != adls_raz_url:
+    LOG.warning('Raz API: S3A and ADLS URLs are different')
+
+  return s3a_raz_url or adls_raz_url
 
 def get_raz_cluster_name():
   """
   Get the name of the Cluster where Raz is running.
-
-  S3 only. Add check for Azure when supported.
   """
-  return get_conf().get(_CNF_S3A_RAZ_CLUSTER_NAME, '')
+  return get_conf().get(_CNF_S3A_RAZ_CLUSTER_NAME, '') or get_conf().get(_CNF_ADLS_RAZ_CLUSTER_NAME, '')
 
 def get_raz_default_endpoint():
   """
@@ -148,6 +155,8 @@ def get_raz_default_endpoint():
         'bucket': match.group('bucket')
       }
 
+def get_default_fs():
+  return get_conf().get(_CNF_DEFAULT_FS)
 
 def get_adls_client_id():
   """

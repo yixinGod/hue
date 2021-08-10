@@ -15,17 +15,10 @@
 # limitations under the License.
 
 import logging
-import sys
 
 from desktop import conf
 from desktop.lib.raz.clients import AdlsRazClient
 from desktop.lib.rest.http_client import HttpClient
-
-
-if sys.version_info[0] > 2:
-  import urllib.request, urllib.error
-else:
-  from urllib import quote as urllib_quote
 
 
 LOG = logging.getLogger(__name__)
@@ -33,23 +26,37 @@ LOG = logging.getLogger(__name__)
 
 class RazHttpClient(HttpClient):
 
-  def __init__(self):
-    # Note: there is no concept of base_url and credentials anymore
-    # Maybe create here: http_client.HttpClient(url, exc_class=WebHdfsException, logger=LOG)
-    pass
+  def __init__(self, username, base_url, exc_class=None, logger=None):
+    super(RazHttpClient, self).__init__(base_url, exc_class, logger)
+    self.username = username
 
   def execute(self, http_method, path, params=None, data=None, headers=None, allow_redirects=False, urlencode=True,
               files=None, stream=False, clear_cookies=False, timeout=conf.REST_CONN_TIMEOUT.get()):
+    """
+    From an object URL we get back the SAS token as a GET param string, e.g.:
+    https://[storageaccountname].blob.core.windows.net/[containername]/[blobname]
+    -->
+    https://[storageaccountname].blob.core.windows.net/[containername]/[blobname]?sv=2014-02-14&sr=b&
+    sig=pJL%2FWyed41tptiwBM5ymYre4qF8wzrO05tS5MCjkutc%3D&st=2015-01-02T01%3A40%3A51Z&se=2015-01-02T02%3A00%3A51Z&sp=r
+    """
+    raz_client = AdlsRazClient(username=self.username)
 
-    raz_client = AdlsRazClient()
+    url = self._make_url(path, params)
 
-    container = 'hue'
-    storage_account = 'gethue.dfs.core.windows.net'
+    response = raz_client.get_url(action=http_method, path=url, headers=headers)
 
-    # https://[storageaccountname].blob.core.windows.net/[containername]/[blobname]?sv=2014-02-14&sr=b&
-    #   sig=pJL%2FWyed41tptiwBM5ymYre4qF8wzrO05tS5MCjkutc%3D&st=2015-01-02T01%3A40%3A51Z&se=2015-01-02T02%3A00%3A51Z&sp=r
-    tmp_url = raz_client.get_url(storage_account, container, relative_path=path, perm='read')
+    signed_path = path + ('?' if '?' not in url else '&') + response['token']
 
-    # TODO: get clean `path` etc
-
-    return super(RazHttpClient, self).execute(http_method=http_method, path=tmp_url)
+    return super(RazHttpClient, self).execute(
+        http_method=http_method,
+        path=signed_path,
+        params=params,
+        data=data,
+        headers=headers,
+        allow_redirects=allow_redirects,
+        urlencode=False,
+        files=files,
+        stream=stream,
+        clear_cookies=clear_cookies,
+        timeout=timeout
+    )
