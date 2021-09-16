@@ -24,7 +24,7 @@ import requests
 
 from desktop.lib.conf import Config, UnspecifiedConfigSection, ConfigSection, coerce_bool, coerce_password_from_script
 from desktop.lib.idbroker import conf as conf_idbroker
-from hadoop.core_site import get_s3a_access_key, get_s3a_secret_key, get_s3a_session_token, get_raz_api_url, get_raz_default_endpoint
+from hadoop.core_site import get_s3a_access_key, get_s3a_secret_key, get_s3a_session_token, get_raz_api_url, get_raz_s3_default_bucket
 
 if sys.version_info[0] > 2:
   from django.utils.translation import gettext_lazy as _, gettext as _t
@@ -106,10 +106,10 @@ def get_default_region():
 
 
 def get_default_host():
-  '''Returns the S3 host when Raz is configued'''
+  '''Returns the S3 host when Raz is configured'''
 
   if get_raz_api_url():
-    endpoint = get_raz_default_endpoint()
+    endpoint = get_raz_s3_default_bucket()
     if endpoint:
       return endpoint.get('host')
 
@@ -283,12 +283,10 @@ AWS_ACCOUNTS = UnspecifiedConfigSection(
 
 
 def is_enabled():
-  from desktop.conf import RAZ  # Must be imported dynamically in order to have proper value
   return ('default' in list(AWS_ACCOUNTS.keys()) and AWS_ACCOUNTS['default'].get_raw() and AWS_ACCOUNTS['default'].ACCESS_KEY_ID.get()) or \
       has_iam_metadata() or \
       conf_idbroker.is_idbroker_enabled('s3a') or \
-      (RAZ.IS_ENABLED.get() and 'default' in list(AWS_ACCOUNTS.keys()) and AWS_ACCOUNTS['default'].get_raw()) or \
-      IS_SELF_SIGNING_ENABLED.get()
+      is_raz_s3()
 
 
 def is_ec2_instance():
@@ -346,11 +344,16 @@ def has_iam_metadata():
 
 def has_s3_access(user):
   from desktop.auth.backend import is_admin
-  from desktop.conf import RAZ  # Must be imported dynamically in order to have proper value
 
   return user.is_authenticated and user.is_active and (
-    is_admin(user) or user.has_hue_permission(action="s3_access", app="filebrowser") or RAZ.IS_ENABLED.get()
-  )
+    is_admin(user) or user.has_hue_permission(action="s3_access", app="filebrowser") or is_raz_s3())
+
+
+def is_raz_s3():
+  from desktop.conf import RAZ  # Must be imported dynamically in order to have proper value
+
+  return (RAZ.IS_ENABLED.get() and 'default' in list(AWS_ACCOUNTS.keys()) and \
+          AWS_ACCOUNTS['default'].HOST.get() and AWS_ACCOUNTS['default'].get_raw() and not IS_SELF_SIGNING_ENABLED.get())
 
 
 def config_validator(user):

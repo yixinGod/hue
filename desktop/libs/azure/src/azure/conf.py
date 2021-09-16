@@ -76,11 +76,8 @@ def get_default_abfs_url():
 
 def get_default_abfs_fs():
   default_fs = core_site.get_default_fs()
-  
-  if default_fs:
-    return default_fs
-  else:
-    return ABFS_CLUSTERS['default'].FS_DEFAULTFS.get()
+
+  return default_fs if default_fs and default_fs.startwith('abfs://') else ABFS_CLUSTERS['default'].FS_DEFAULTFS.get()
 
 ADLS_CLUSTERS = UnspecifiedConfigSection(
   "adls_clusters",
@@ -146,9 +143,9 @@ ABFS_CLUSTERS = UnspecifiedConfigSection(
   each=ConfigSection(
     help="Information about a single ABFS cluster",
     members=dict(
-      FS_DEFAULTFS=Config("fs_defaultfs", help="abfss://<container_name>@<account_name>.dfs.core.windows.net", type=str, default=None),
+      FS_DEFAULTFS=Config("fs_defaultfs", help="abfs://<container_name>@<account_name>.dfs.core.windows.net", type=str, default=None),
       WEBHDFS_URL=Config("webhdfs_url",
-                         help="https://<container_name>@<account_name>.dfs.core.windows.net",
+                         help="https://<account_name>.dfs.core.windows.net",
                          type=str, default=None),
     )
   )

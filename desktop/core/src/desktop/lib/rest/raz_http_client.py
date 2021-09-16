@@ -15,10 +15,17 @@
 # limitations under the License.
 
 import logging
+import sys
 
 from desktop import conf
 from desktop.lib.raz.clients import AdlsRazClient
 from desktop.lib.rest.http_client import HttpClient
+from desktop.lib.exceptions_renderable import PopupException
+
+if sys.version_info[0] > 2:
+  from django.utils.translation import gettext as _
+else:
+  from django.utils.translation import ugettext as _
 
 
 LOG = logging.getLogger(__name__)
@@ -34,23 +41,23 @@ class RazHttpClient(HttpClient):
               files=None, stream=False, clear_cookies=False, timeout=conf.REST_CONN_TIMEOUT.get()):
     """
     From an object URL we get back the SAS token as a GET param string, e.g.:
-    https://[storageaccountname].blob.core.windows.net/[containername]/[blobname]
+    https://{storageaccountname}.dfs.core.windows.net/{container}/{path}
     -->
-    https://[storageaccountname].blob.core.windows.net/[containername]/[blobname]?sv=2014-02-14&sr=b&
+    https://{storageaccountname}.dfs.core.windows.net/{container}/{path}?sv=2014-02-14&sr=b&
     sig=pJL%2FWyed41tptiwBM5ymYre4qF8wzrO05tS5MCjkutc%3D&st=2015-01-02T01%3A40%3A51Z&se=2015-01-02T02%3A00%3A51Z&sp=r
     """
-    raz_client = AdlsRazClient(username=self.username)
 
     url = self._make_url(path, params)
+    sas_token = self.get_sas_token(http_method, self.username, url, params, headers)
 
-    response = raz_client.get_url(action=http_method, path=url, headers=headers)
+    signed_url = url + ('?' if '?' not in url else '&') + sas_token
 
-    signed_path = path + ('?' if '?' not in url else '&') + response['token']
+    # Required because `self._make_url` is called in base class execute method also
+    signed_path = path + signed_url.partition(path)[2]
 
     return super(RazHttpClient, self).execute(
         http_method=http_method,
         path=signed_path,
-        params=params,
         data=data,
         headers=headers,
         allow_redirects=allow_redirects,
@@ -60,3 +67,12 @@ class RazHttpClient(HttpClient):
         clear_cookies=clear_cookies,
         timeout=timeout
     )
+
+  def get_sas_token(self, http_method, username, url, params=None, headers=None):
+    raz_client = AdlsRazClient(username=username)
+    response = raz_client.get_url(action=http_method, path=url, headers=headers)
+
+    if response and response.get('token'):
+      return response.get('token')
+    else:
+      raise PopupException(_('No SAS token in RAZ response'), error_code=403)

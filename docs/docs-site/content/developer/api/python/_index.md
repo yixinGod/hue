@@ -2,7 +2,7 @@
 title: "Python"
 date: 2019-03-13T18:28:09-07:00
 draft: false
-weight: 2
+weight: 3
 ---
 
 Leverage the built-in Python shell to interact with the server and the API.
@@ -33,17 +33,36 @@ And finally launch the shell by:
     > ALERT: HUE_CONF_DIR must be set when running hue commands in CM Managed environment
     > ALERT: Please run 'hue <command> --cm-managed'
 
+
+## Query
+
+Requires a user object:
+
+    from notebook.models import make_notebook, MockRequest
+
+    job = make_notebook(
+        name='List tables in Salesforce database',
+        editor_type='hive',
+        statement='SHOW TABLES',
+        status='ready',
+        database='sfdc',
+        on_success_url='assist.db.refresh'
+    )
+
+    request = MockRequest(user=user)
+    job.execute_and_wait(request)
+
 ## Storage
 
 ### S3
 
-Interact directly with S3 by first getting a client:
+Interact directly with S3 by first getting the client:
 
     from desktop.lib.fsmanager import get_client
 
-    s3fs = get_client('default', 's3a', 'romain')
+    s3fs = get_client('default', 's3a', 'csso_hueuser')
 
-Then grab a key:
+Then grab the key:
 
     k = s3fs._get_key('s3a://gethue/')
     k.exists()
@@ -67,11 +86,47 @@ Or perform various FS operations:
 
 ### ADLS
 
+
+Interact directly with ADLS by first getting the client:
+
     from desktop.lib.fsmanager import get_client
 
-    fs = get_client('default', 'abfs', 'romain')
+    fs = get_client('default', 'abfs', 'csso_hueuser')
 
-    fs.stats('https://gethue.blob.core.windows.net/data')
+Perform various FS operations:
+
+    # Stats
+    fs.stats('abfs://data/user/csso_hueuser/demo_dir')
+
+    # List directory
+    fs.listdir('abfs://data/user/csso_hueuser/demo_dir')
+
+    # Create directory
+    fs.mkdir('abfs://data/user/csso_hueuser/new_dir')
+
+    # Create file
+    fs.create('abfs://data/user/csso_hueuser/demo_dir/newfile.txt')
+
+    # Create file with write data
+    fs.create('abfs://data/user/csso_hueuser/demo_dir/demo_file.txt', data='Hello world!')
+
+    # Read
+    fs.read('abfs://data/user/csso_hueuser/demo_dir/demo_file.txt')
+
+    # Delete path (can be file or empty directory)
+    fs.remove('abfs://data/user/csso_hueuser/demo_dir/demo_file.txt')
+
+    # Delete directory with recursive as true
+    fs.rmtree('abfs://data/user/csso_hueuser/demo_dir')
+
+    # Chmod (accepts both octal number and string)
+    fs.chmod('abfs://data/user/csso_hueuser/demo_dir/demo_file.txt', permissionNumber='777')
+
+    # Rename path
+    fs.rename('abfs://data/user/csso_hueuser/old_name_dir', 'abfs://data/user/csso_hueuser/new_name_dir')
+
+    # Copy (for both file and directory)
+    fs.copy('abfs://data/user/csso_hueuser/source_path', 'abfs://data/user/csso_hueuser/destination_path')
 
 ## Users
 
